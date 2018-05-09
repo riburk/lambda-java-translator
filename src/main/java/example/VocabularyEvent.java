@@ -16,9 +16,19 @@ public class VocabularyEvent {
     }
 
 
+    public String getEventType() {
+        return eventType;
+    }
 
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
 
+    public String getWord() {
+        return word;
+    }
 
-
-
+    public void setWord(String word) {
+        this.word = word;
+    }
 }
