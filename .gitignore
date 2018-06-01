@@ -1,2 +1,10 @@
+
+target/
+out/
+
 # IntelliJ
 .idea/*
+!.idea/codeStyleSettings.xml
+!.idea/runConfigurations/
+!.idea/runConfigurations/*
+
