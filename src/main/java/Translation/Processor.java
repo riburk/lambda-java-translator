@@ -1,6 +1,8 @@
-package TranslationHandler;
+package Translation;
 
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.dynamodbv2.*;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
@@ -20,6 +22,8 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.KinesisEvent;
 import com.amazonaws.services.lambda.runtime.events.KinesisEvent.KinesisEventRecord;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,6 +34,7 @@ import com.google.cloud.translate.Translation;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.HashMap;
 
 public class Processor implements RequestHandler<KinesisEvent, Void> {
@@ -39,6 +44,7 @@ public class Processor implements RequestHandler<KinesisEvent, Void> {
     private String REGION = "us-west-2";
     private ObjectMapper objectMapper;
     private String STREAM_NAME = "translation-stream";
+    private String S3_BUCKET_NAME = "translate-lambda";
 
     public Void handleRequest(KinesisEvent event, Context context) {
         String data;
@@ -172,7 +178,35 @@ public class Processor implements RequestHandler<KinesisEvent, Void> {
     }
 
     private void storeForRetry(VocabularyEvent event) {
-        // Save to S3
+        String clientRegion = REGION;
+        String bucketName = S3_BUCKET_NAME;
+        String retryDirName = "retry-files";
+        String retryFileName = new Date().toString();
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String retryEvent = mapper.writeValueAsString(event);
+
+            AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+                    .withRegion(clientRegion)
+                    .build();
+
+            // Upload a text string as a new object.
+            s3Client.putObject(bucketName, retryDirName + "/" + retryFileName, retryEvent);
+        }
+        catch(AmazonServiceException e) {
+            // The call was transmitted successfully, but Amazon S3 couldn't process
+            // it, so it returned an error response.
+            e.printStackTrace();
+        }
+        catch(SdkClientException e) {
+            // Amazon S3 couldn't be contacted for a response, or the client
+            // couldn't parse the response from Amazon S3.
+            e.printStackTrace();
+        }
+        catch(JsonProcessingException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private void causeFakeFailure(String location) throws Exception {

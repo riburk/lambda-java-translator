@@ -1,4 +1,4 @@
-package TranslationHandler;
+package Translation;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
